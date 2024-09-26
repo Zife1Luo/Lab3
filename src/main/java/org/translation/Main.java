@@ -1,9 +1,10 @@
 package org.translation;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
+import java.util.stream.Collectors;
 
 /**
  * Main class for this program.
@@ -16,9 +17,7 @@ import java.util.Scanner;
  */
 public class Main {
 
-    private static final String QUIT_COMMAND = "quit";
-    private static final CountryCodeConverter COUNTRY_CODE_CONVERTER = new CountryCodeConverter();
-    private static final LanguageCodeConverter LANGUAGE_CODE_CONVERTER = new LanguageCodeConverter();
+    private static final String QUIT = "quit";
 
     /**
      * This is the main entry point of our Translation System!<br/>
@@ -44,23 +43,17 @@ public class Main {
      */
     public static void runProgram(Translator translator) {
         while (true) {
-            String country = promptForCountry(translator);
+            String countryCode = promptForCountry(translator);
             // CheckStyle: The String "quit" appears 3 times in the file.
             // Checkstyle: String literal expressions should be on the left side of an equals comparison
-            if (QUIT_COMMAND.equals(country)) {
+            if (QUIT.equalsIgnoreCase(countryCode)) {
                 break;
             }
             // Task: Once you switch promptForCountry so that it returns the country
             //            name rather than the 3-letter country code, you will need to
             //            convert it back to its 3-letter country code when calling promptForLanguage
-            String countryCode = COUNTRY_CODE_CONVERTER.fromCountry(country);
-            if (countryCode == null) {
-                System.out.println("Invalid country selection. Try again.");
-                continue;
-            }
-
             String language = promptForLanguage(translator, countryCode);
-            if (QUIT_COMMAND.equals(language)) {
+            if (QUIT.equalsIgnoreCase(language)) {
                 break;
             }
             // Task: Once you switch promptForLanguage so that it returns the language
@@ -68,85 +61,79 @@ public class Main {
             //            convert it back to its 2-letter language code when calling translate.
             //            Note: you should use the actual names in the message printed below though,
             //            since the user will see the displayed message.
-            String languageCode = LANGUAGE_CODE_CONVERTER.fromLanguage(language);
-            if (languageCode == null) {
-                System.out.println("Invalid language selection. Try again.");
-                continue;
-            }
+            String translatedCountry = translator.translate(countryCode, language);
+            String countryName = new CountryCodeConverter().fromCountryCode(countryCode);
+            String languageName = new LanguageCodeConverter().fromLanguageCode(language);
+            System.out.println(countryName + " in " + languageName + " is " + translatedCountry);
 
-            // Perform the translation
-            String translatedName = translator.translate(countryCode, languageCode);
-            if (translatedName != null) {
-                System.out.println(country + " in " + language + " is " + translatedName);
-            }
-            else {
-                System.out.println("Translation not available for " + country + " in " + language);
-            }
-
-            System.out.println("Press enter to continue or type quit to exit.");
+            System.out.println("Press enter to continue or quit to exit.");
             Scanner s = new Scanner(System.in);
             String textTyped = s.nextLine();
 
-            if (QUIT_COMMAND.equals(textTyped)) {
+            if (QUIT.equalsIgnoreCase(textTyped)) {
                 break;
             }
         }
     }
-
     // Note: CheckStyle is configured so that we don't need javadoc for private methods
     private static String promptForCountry(Translator translator) {
-        List<String> countryCodes = translator.getCountries();
+        CountryCodeConverter countryCodeConverter = new CountryCodeConverter();
         // Task: replace the following println call, sort the countries alphabetically,
         //            and print them out; one per line
         //      hint: class Collections provides a static sort method
         // Task: convert the country codes to the actual country names before sorting
-        List<String> countryNames = new ArrayList<>();
-        for (String code : countryCodes) {
-            String countryName = COUNTRY_CODE_CONVERTER.fromCountryCode(code);
-            if (countryName != null) {
-                countryNames.add(countryName);
-            }
-        }
+        List<String> countryCodes = translator.getCountries();
 
-        // Sort the country names alphabetically
+        Map<String, String> codeToNameMap = countryCodes.stream()
+                .collect(Collectors.toMap(code -> code, countryCodeConverter::fromCountryCode));
+
+        List<String> countryNames = codeToNameMap.values().stream().collect(Collectors.toList());
+
         Collections.sort(countryNames);
 
-        System.out.println("Available countries:");
-        for (String country : countryNames) {
-            System.out.println(country);
+        for (String countryName : countryNames) {
+            System.out.println(countryName);
         }
 
-        System.out.println("Select a country from the above list or type 'quit' to exit:");
+        System.out.println("select a country from above:");
 
         Scanner s = new Scanner(System.in);
-        return s.nextLine();
+        String countryName = s.nextLine();
+
+        return codeToNameMap.entrySet().stream()
+                .filter(entry -> entry.getValue().equalsIgnoreCase(countryName))
+                .map(Map.Entry::getKey)
+                .findFirst()
+                .orElse(QUIT);
     }
 
     // Note: CheckStyle is configured so that we don't need javadoc for private methods
     private static String promptForLanguage(Translator translator, String country) {
-        List<String> languageCodes = translator.getCountryLanguages(country);
+        LanguageCodeConverter languageCodeConverter = new LanguageCodeConverter();
         // Task: replace the line below so that we sort the languages alphabetically and print them out; one per line
         // Task: convert the language codes to the actual language names before sorting
-        List<String> languageNames = new ArrayList<>();
-        for (String code : languageCodes) {
-            String languageName = LANGUAGE_CODE_CONVERTER.fromLanguageCode(code);
-            if (languageName != null) {
-                languageNames.add(languageName);
-            }
-        }
+        List<String> languageCodes = translator.getCountryLanguages(country);
 
-        // Sort the language names alphabetically
+        Map<String, String> codeToNameMap = languageCodes.stream()
+                .collect(Collectors.toMap(code -> code, languageCodeConverter::fromLanguageCode));
+
+        List<String> languageNames = codeToNameMap.values().stream().collect(Collectors.toList());
+
         Collections.sort(languageNames);
 
-        System.out.println("Available languages for " + country + ":");
-        for (String language : languageNames) {
-            System.out.println(language);
+        for (String languageName : languageNames) {
+            System.out.println(languageName);
         }
 
-        System.out.println("Select a language from the above list or type 'quit' to exit:");
+        System.out.println("select a language from above:");
 
         Scanner s = new Scanner(System.in);
-        return s.nextLine();
+        String languageName = s.nextLine();
+
+        return codeToNameMap.entrySet().stream()
+                .filter(entry -> entry.getValue().equalsIgnoreCase(languageName))
+                .map(Map.Entry::getKey)
+                .findFirst()
+                .orElse(QUIT);
     }
 }
-
