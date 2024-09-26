@@ -76,6 +76,7 @@ public class Main {
         }
     }
     // Note: CheckStyle is configured so that we don't need javadoc for private methods
+
     private static String promptForCountry(Translator translator) {
         CountryCodeConverter countryCodeConverter = new CountryCodeConverter();
         // Task: replace the following println call, sort the countries alphabetically,
